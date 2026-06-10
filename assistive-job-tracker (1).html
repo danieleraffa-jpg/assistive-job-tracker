@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="it" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Assistive Job Tracker</title>
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Job Tracker">
+  <meta name="theme-color" content="#1a4fa0">
+  <style>
+    :root {
+      --text-xs: clamp(0.75rem, 0.72rem + 0.2vw, 0.875rem);
+      --text-sm: clamp(0.95rem, 0.9rem + 0.2vw, 1rem);
+      --text-base: clamp(1rem, 0.96rem + 0.2vw, 1.1rem);
+      --text-lg: clamp(1.125rem, 1.05rem + 0.4vw, 1.35rem);
+      --text-xl: clamp(1.35rem, 1.15rem + 0.8vw, 1.8rem);
+      --space-1: .25rem; --space-2: .5rem; --space-3: .75rem;
+      --space-4: 1rem; --space-5: 1.25rem; --space-6: 1.5rem;
+      --space-8: 2rem; --space-10: 2.5rem;
+      --radius-sm: .5rem; --radius-md: .8rem; --radius-lg: 1.1rem; --radius-xl: 1.4rem;
+      --color-bg: #f7f6f2; --color-surface: #fdfcf9;
+      --color-surface-2: #f0ede8; --color-border: #d8d2ca;
+      --color-text: #24211c; --color-text-muted: #66635d;
+      --color-primary: #01696f; --color-primary-hover: #0c4e54;
+      --color-primary-soft: #d8ecec;
+      --color-warning: #a25d18; --color-danger: #9a2c52; --color-success: #437a22;
+      --color-agenda: #5a3e9b; --color-agenda-soft: #ede9f8; --color-agenda-border: #c0aff0;
+      --shadow-sm: 0 2px 8px rgba(26,21,14,.06); --shadow-md: 0 12px 30px rgba(26,21,14,.1);
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; font-family: Inter, ui-sans-serif, system-ui, sans-serif; background: var(--color-bg); color: var(--color-text); }
+    body { min-height: 100vh; font-size: var(--text-base); }
+    button, input, textarea, select { font: inherit; }
+    button { cursor: pointer; border: none; }
+
+    .app { display: grid; grid-template-rows: auto auto 1fr auto; min-height: 100vh; }
+
+    /* TOPBAR */
+    .topbar { display: flex; justify-content: space-between; align-items: center; gap: var(--space-4); padding: var(--space-4) var(--space-5); background: var(--color-surface); border-bottom: 1px solid var(--color-border); position: sticky; top: 0; z-index: 20; }
+    .brand h1 { margin: 0; font-size: var(--text-xl); line-height: 1.1; }
+    .brand p { margin: .2rem 0 0; color: var(--color-text-muted); font-size: var(--text-sm); }
+    .primary-btn, .secondary-btn, .ghost-btn, .chip { min-height: 48px; padding: 0 var(--space-4); border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; gap: .45rem; }
+    .primary-btn { background: var(--color-primary); color: #fff; font-weight: 700; }
+    .primary-btn:hover { background: var(--color-primary-hover); }
+    .secondary-btn { background: var(--color-surface-2); color: var(--color-text); border: 1px solid var(--color-border); }
+    .ghost-btn { background: transparent; color: var(--color-text); border: 1px solid var(--color-border); }
+
+    /* TOOLBAR */
+    .toolbar { padding: var(--space-4) var(--space-5); display: grid; grid-template-columns: 1.2fr auto; gap: var(--space-4); background: linear-gradient(rgba(255,255,255,.5), transparent); }
+    .search-wrap { display: flex; gap: var(--space-3); align-items: center; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 0 var(--space-4); min-height: 56px; }
+    .search-wrap input { border: none; background: transparent; outline: none; width: 100%; }
+    .filters { display: flex; gap: var(--space-2); overflow-x: auto; padding-bottom: var(--space-1); }
+    .chip { background: var(--color-surface); border: 1px solid var(--color-border); white-space: nowrap; }
+    .chip.active { background: var(--color-primary-soft); border-color: #9cc8ca; color: #063a3d; font-weight: 700; }
+
+    /* BOARD */
+    .board-wrap { padding: 0 var(--space-5) var(--space-6); overflow: auto; }
+    .board { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(290px, 24vw); gap: var(--space-4); align-items: start; min-height: 100%; padding-bottom: var(--space-4); }
+    .column { background: rgba(253,252,249,.9); border: 1px solid var(--color-border); border-radius: var(--radius-xl); box-shadow: var(--shadow-sm); display: flex; flex-direction: column; max-height: calc(100vh - 240px); }
+    .column-head { padding: var(--space-4); border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); position: sticky; top: 0; background: var(--color-surface); border-radius: var(--radius-xl) var(--radius-xl) 0 0; }
+    .column-head h2 { margin: 0; font-size: var(--text-sm); line-height: 1.3; }
+    .count { background: var(--color-surface-2); color: var(--color-text-muted); min-width: 34px; height: 34px; border-radius: 999px; display: grid; place-items: center; font-weight: 700; }
+    .cards { padding: var(--space-3); overflow: auto; display: flex; flex-direction: column; gap: var(--space-3); }
+    .card { background: white; border: 1px solid #e5ded5; border-radius: var(--radius-lg); padding: var(--space-4); box-shadow: var(--shadow-sm); min-height: 144px; display: flex; flex-direction: column; gap: .55rem; cursor: pointer; transition: box-shadow .15s; }
+    .card:hover { box-shadow: var(--shadow-md); }
+    .card-top { display: flex; justify-content: space-between; gap: var(--space-2); align-items: flex-start; }
+    .card h3 { margin: 0; font-size: var(--text-base); line-height: 1.25; }
+    .card p { margin: 0; color: var(--color-text-muted); font-size: var(--text-sm); }
+    .meta { display: flex; flex-wrap: wrap; gap: .45rem; margin-top: auto; }
+    .badge { min-height: 32px; border-radius: 999px; display: inline-flex; align-items: center; padding: 0 .7rem; font-size: .82rem; font-weight: 700; }
+    .priority-high { background: #f3d6df; color: #6f1f3c; }
+    .priority-medium { background: #efe3c9; color: #6d4b16; }
+    .priority-low { background: #dceaD1; color: #315b1c; }
+    .badge-soft { background: #e5f1f1; color: #0b4e53; }
+    .badge-agenda { background: var(--color-agenda-soft); color: var(--color-agenda); }
+    .empty { padding: var(--space-8) var(--space-4); text-align: center; color: var(--color-text-muted); }
+
+    /* AGENDA INDICATOR ON CARD */
+    .agenda-check { display: flex; align-items: center; gap: .4rem; font-size: var(--text-xs); font-weight: 600; color: var(--color-agenda); }
+    .agenda-check svg { flex-shrink: 0; }
+
+    /* FOOTER NAV */
+    .footer-nav { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-2); padding: var(--space-3) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom)); background: rgba(253,252,249,.97); border-top: 1px solid var(--color-border); position: sticky; bottom: 0; }
+    .nav-btn { min-height: 56px; border-radius: var(--radius-lg); background: var(--color-surface); border: 1px solid var(--color-border); color: var(--color-text); font-weight: 600; }
+    .nav-btn.active { background: var(--color-primary-soft); color: #08383b; border-color: #9cc8ca; }
+
+    /* PANEL */
+    .panel-backdrop { position: fixed; inset: 0; background: rgba(18,20,20,.42); display: none; align-items: stretch; justify-content: flex-end; z-index: 50; }
+    .panel-backdrop.open { display: flex; }
+    .panel { width: min(640px, 100vw); background: var(--color-surface); height: 100%; box-shadow: var(--shadow-md); overflow: auto; padding: var(--space-5); }
+    .panel-head { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); margin-bottom: var(--space-5); }
+    .panel-head h2 { margin: 0; font-size: var(--text-xl); }
+    .form-grid { display: grid; gap: var(--space-4); }
+    .field { display: grid; gap: .45rem; }
+    .field label { font-size: var(--text-sm); font-weight: 700; }
+    .field input, .field select, .field textarea { width: 100%; min-height: 52px; border-radius: var(--radius-md); border: 1px solid var(--color-border); background: #fff; padding: .85rem .95rem; outline: none; }
+    .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(1,105,111,.12); }
+    .field textarea { min-height: 120px; resize: vertical; }
+    .date-row { display: grid; grid-template-columns: 1fr auto auto; gap: var(--space-2); align-items: center; }
+    .date-btn { min-height: 52px; padding: 0 var(--space-4); border-radius: var(--radius-md); background: var(--color-surface-2); border: 1px solid var(--color-border); color: var(--color-text); font-weight: 700; white-space: nowrap; }
+    .section-card { background: white; border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-4); display: grid; gap: var(--space-4); }
+    .panel-actions { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); margin-top: var(--space-5); }
+    .status-line { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); background: var(--color-primary-soft); padding: var(--space-3) var(--space-4); border-radius: var(--radius-lg); }
+
+    /* ===== AGENDA CHECKBOX ===== */
+    .agenda-field {
+      display: none;
+      background: var(--color-agenda-soft);
+      border: 1.5px solid var(--color-agenda-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-4);
+      gap: var(--space-3);
+      align-items: flex-start;
+    }
+    .agenda-field.visible { display: flex; }
+    .agenda-field input[type="checkbox"] {
+      width: 22px; height: 22px; min-height: unset;
+      margin-top: 2px; flex-shrink: 0;
+      accent-color: var(--color-agenda);
+      cursor: pointer;
+    }
+    .agenda-field label {
+      font-size: var(--text-sm); font-weight: 700;
+      color: var(--color-agenda); cursor: pointer; line-height: 1.35;
+    }
+    .agenda-field label span { display: block; font-weight: 400; color: var(--color-text-muted); font-size: var(--text-xs); margin-top: .2rem; }
+    .agenda-field.error {
+      border-color: var(--color-danger);
+      background: #fdf0f4;
+    }
+    .agenda-field.error label { color: var(--color-danger); }
+    .agenda-error-msg { display: none; color: var(--color-danger); font-size: var(--text-xs); font-weight: 700; margin-top: -.5rem; }
+    .agenda-error-msg.visible { display: block; }
+
+    /* UTIL */
+    .hidden { display: none !important; }
+    .muted { color: var(--color-text-muted); }
+
+    /* ── TABLET ──────────────────────────────── ≤1100px */
+    @media (max-width: 1100px) {
+      .toolbar { grid-template-columns: 1fr; }
+      .board { grid-auto-columns: minmax(270px, 80vw); }
+    }
+
+    /* ── MOBILE-L / PHABLET ──────────────────── ≤720px */
+    @media (max-width: 720px) {
+      .topbar { padding: var(--space-3) var(--space-4); gap: var(--space-3); }
+      .brand p { display: none; }
+      .brand h1 { font-size: clamp(1.1rem, 4vw, 1.35rem); }
+      .primary-btn { padding: 0 var(--space-3); font-size: var(--text-sm); }
+
+      .toolbar { padding: var(--space-3) var(--space-4); gap: var(--space-3); }
+      .search-wrap { min-height: 48px; }
+      .filters { gap: var(--space-2); }
+      .chip { min-height: 40px; font-size: var(--text-xs); padding: 0 .75rem; }
+
+      .board-wrap { padding: 0 var(--space-3) var(--space-6); }
+      .board { grid-auto-columns: minmax(260px, 88vw); gap: var(--space-3); }
+      .column { max-height: calc(100vh - 220px); }
+
+      /* Panel: slide up from bottom on mobile */
+      .panel-backdrop { align-items: flex-end; justify-content: stretch; }
+      .panel {
+        width: 100%;
+        height: auto;
+        max-height: 92dvh;
+        border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+        padding: var(--space-4);
+      }
+      .panel::before {
+        content: '';
+        display: block;
+        width: 40px; height: 4px;
+        background: var(--color-border);
+        border-radius: 2px;
+        margin: 0 auto var(--space-4);
+      }
+      .panel-head { margin-bottom: var(--space-4); }
+      .panel-actions { grid-template-columns: 1fr 1fr; }
+      .date-row { grid-template-columns: 1fr; }
+      .date-row .date-btn { display: none; } /* hide Today/Tomorrow on very small; use native date picker */
+
+      .footer-nav { gap: var(--space-1); padding-inline: var(--space-2); }
+      .nav-btn { font-size: var(--text-xs); min-height: 52px; border-radius: var(--radius-md); }
+    }
+
+    /* ── MOBILE-S ────────────────────────────── ≤480px */
+    @media (max-width: 480px) {
+      /* Switch board to vertical single-column list */
+      .board-wrap { padding: 0 var(--space-3) calc(var(--space-6) + env(safe-area-inset-bottom)); overflow-x: hidden; }
+      .board {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+      }
+      /* Collapsible columns: show header always, cards toggle */
+      .column {
+        max-height: none;
+        border-radius: 0;
+        border-left: none; border-right: none;
+        border-bottom: none;
+        box-shadow: none;
+      }
+      .column:first-child { border-radius: var(--radius-xl) var(--radius-xl) 0 0; border-top: 1px solid var(--color-border); }
+      .column:last-child  { border-radius: 0 0 var(--radius-xl) var(--radius-xl); border-bottom: 1px solid var(--color-border); margin-bottom: var(--space-4); }
+      .column-head { cursor: pointer; border-radius: 0; user-select: none; }
+      .column-head::after {
+        content: '▾';
+        font-size: .85rem;
+        color: var(--color-text-muted);
+        transition: transform .2s;
+        margin-left: auto;
+        flex-shrink: 0;
+      }
+      .column.collapsed .column-head::after { transform: rotate(-90deg); }
+      .column.collapsed .cards { display: none; }
+
+      /* Cards full-width */
+      .card { min-height: unset; border-radius: var(--radius-md); }
+
+      /* Panel full-screen on very small */
+      .panel { max-height: 100dvh; border-radius: 0; }
+      .panel::before { display: none; }
+
+      /* Topbar compact */
+      .topbar { flex-wrap: wrap; }
+      .brand { flex: 1; min-width: 0; }
+      #newJobBtn { order: 2; }
+
+      .panel-actions { grid-template-columns: 1fr; }
+      .date-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <h1>Assistive Job Tracker</h1>
+      <p>Prototipo tablet-first per monitorare i lavori aperti in pochi tocchi.</p>
+    </div>
+    <button class="primary-btn" id="newJobBtn">+ Nuovo lavoro</button>
+    <span id="syncBadge" style="font-size:var(--text-xs);font-weight:700;color:var(--color-text-muted);white-space:nowrap"></span>
+  </header>
+
+  <section class="toolbar">
+    <div class="search-wrap">
+      <span>🔎</span>
+      <input id="searchInput" type="search" placeholder="Cerca cliente o lavoro">
+    </div>
+    <div class="filters" id="filters">
+      <button class="chip active" data-filter="Tutti">Tutti</button>
+      <button class="chip" data-filter="Oggi">Oggi</button>
+      <button class="chip" data-filter="In attesa">In attesa</button>
+      <button class="chip" data-filter="Urgenti">Urgenti</button>
+      <button class="chip" data-filter="Da fatturare">Da fatturare</button>
+    </div>
+  </section>
+
+  <main class="board-wrap" id="boardWrap">
+    <div class="board" id="board"></div>
+  </main>
+
+  <nav class="footer-nav">
+    <button class="nav-btn active" data-view="board">Lavori</button>
+    <button class="nav-btn" data-view="billing">Da fatturare</button>
+    <button class="nav-btn" data-view="archive">Archivio</button>
+    <button class="nav-btn" id="navNew">Nuovo</button>
+  </nav>
+</div>
+
+<div class="panel-backdrop" id="panelBackdrop">
+  <aside class="panel" id="panel">
+    <div class="panel-head">
+      <h2 id="panelTitle">Nuovo lavoro</h2>
+      <button class="ghost-btn" id="closePanel">Chiudi</button>
+    </div>
+    <div id="panelContent"></div>
+  </aside>
+</div>
+
+<script>
+// ─── CONFIG ───────────────────────────────────────────────────────────────────
+// Incolla qui l'URL della tua Web App dopo aver pubblicato lo script
+const SCRIPT_URL = 'INCOLLA_QUI_IL_TUO_URL';
+
+// ─── SYNC ─────────────────────────────────────────────────────────────────────
+let syncEnabled = SCRIPT_URL !== 'INCOLLA_QUI_IL_TUO_URL';
+let syncStatus  = 'idle'; // idle | syncing | error
+
+function showSyncBadge(state, msg) {
+  let badge = document.getElementById('syncBadge');
+  if (!badge) return;
+  const labels = { idle: '✓ Sincronizzato', syncing: '⟳ Sincronizzazione…', error: '⚠ Errore sync' };
+  const colors = { idle: 'var(--color-success)', syncing: 'var(--color-warning)', error: 'var(--color-danger)' };
+  badge.textContent = msg || labels[state];
+  badge.style.color = colors[state];
+}
+
+async function syncFromSheet() {
+  if (!syncEnabled) return;
+  showSyncBadge('syncing');
+  try {
+    const res  = await fetch(`${SCRIPT_URL}?action=getAll`);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    if (data.jobs && data.jobs.length > 0) {
+      jobs   = data.jobs.map(j => ({ ...j, id: +j.id, agendaSaved: j.agendaSaved === true || j.agendaSaved === 'true' }));
+      nextId = Math.max(...jobs.map(j => j.id), 0) + 1;
+      save();
+    }
+    showSyncBadge('idle');
+  } catch(e) {
+    showSyncBadge('error', '⚠ ' + e.message);
+  }
+}
+
+async function syncJob(job) {
+  if (!syncEnabled) return;
+  showSyncBadge('syncing');
+  try {
+    await fetch(SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'save', job })
+    });
+    showSyncBadge('idle');
+  } catch(e) {
+    showSyncBadge('error', '⚠ ' + e.message);
+  }
+}
+
+async function syncDelete(id) {
+  if (!syncEnabled) return;
+  showSyncBadge('syncing');
+  try {
+    await fetch(SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'delete', id })
+    });
+    showSyncBadge('idle');
+  } catch(e) {
+    showSyncBadge('error', '⚠ ' + e.message);
+  }
+}
+
+// ─── DATA ────────────────────────────────────────────────────────────────────
+const STATUSES = [
+  'Appuntamento per valutazione',
+  'Preventivo inviato per controfirma',
+  'Preventivo inviato controfirmato',
+  'Ricevuto decisione',
+  'Materiale ordinato',
+  'Appuntamento per installazione e consegna',
+  'Lavoro terminato da fatturare',
+  'Archiviato'
+];
+
+// Statuses that require "appuntamento salvato in agenda" confirmation
+const AGENDA_STATUSES = new Set([
+  'Appuntamento per valutazione',
+  'Appuntamento per installazione e consegna'
+]);
+
+const PRIORITIES = ['Alta', 'Media', 'Bassa'];
+
+let jobs = JSON.parse(localStorage.getItem('ajt_jobs') || 'null') || [
+  { id: 1, client: 'Fondazione Aurora', title: 'Valutazione carrozzina elettronica', status: 'Appuntamento per valutazione', priority: 'Alta', next: 'Sopralluogo in sede', date: '2026-06-10', notes: 'Contattare referente dott.ssa Mori', agendaSaved: true },
+  { id: 2, client: 'Sig. Bianchi', title: 'Preventivo montascale curvo', status: 'Preventivo inviato per controfirma', priority: 'Media', next: 'Richiamare per conferma firma', date: '2026-06-11', notes: '', agendaSaved: false },
+  { id: 3, client: 'Casa Serena', title: 'Ordine deambulatore elettrico', status: 'Materiale ordinato', priority: 'Alta', next: 'Verificare consegna fornitore', date: '2026-06-09', notes: 'Fornitore: Ortopedia Gamma', agendaSaved: false },
+  { id: 4, client: 'Sig.ra Rossi', title: 'Installazione sollevatore', status: 'Appuntamento per installazione e consegna', priority: 'Media', next: 'Appuntamento ore 14:00', date: '2026-06-12', notes: 'Portare attrezzi specifici', agendaSaved: true },
+  { id: 5, client: 'Studio Medico Delta', title: 'Consegna letto elettrico', status: 'Lavoro terminato da fatturare', priority: 'Alta', next: 'Preparare fattura', date: '2026-06-09', notes: '', agendaSaved: false }
+];
+
+let nextId = Math.max(...jobs.map(j => j.id), 0) + 1;
+let activeFilter = 'Tutti';
+let searchQuery = '';
+
+function save() {
+  localStorage.setItem('ajt_jobs', JSON.stringify(jobs));
+}
+
+// ─── BOARD ───────────────────────────────────────────────────────────────────
+function getFilteredJobs() {
+  const today = new Date().toISOString().split('T')[0];
+  return jobs.filter(j => {
+    if (j.status === 'Archiviato' && activeFilter !== 'Archiviato') return false;
+    if (activeFilter === 'Oggi') return j.date === today;
+    if (activeFilter === 'In attesa') return j.status === 'Preventivo inviato per controfirma';
+    if (activeFilter === 'Urgenti') return j.priority === 'Alta';
+    if (activeFilter === 'Da fatturare') return j.status === 'Lavoro terminato da fatturare';
+    const q = searchQuery.toLowerCase();
+    if (q) return j.client.toLowerCase().includes(q) || j.title.toLowerCase().includes(q);
+    return true;
+  });
+}
+
+function renderBoard() {
+  const board = document.getElementById('board');
+  const visibleStatuses = STATUSES.filter(s => s !== 'Archiviato');
+  const filtered = getFilteredJobs();
+
+  board.innerHTML = visibleStatuses.map(status => {
+    const colJobs = filtered.filter(j => j.status === status);
+    return `
+      <section class="column">
+        <div class="column-head">
+          <h2>${status}</h2>
+          <div class="count">${colJobs.length}</div>
+        </div>
+        <div class="cards">
+          ${colJobs.length === 0
+            ? '<div class="empty">Nessun lavoro in questo stato.</div>'
+            : colJobs.map(renderCard).join('')}
+        </div>
+      </section>`;
+  }).join('');
+
+  board.querySelectorAll('.card').forEach(el => {
+    el.addEventListener('click', () => openJob(+el.dataset.id));
+  });
+}
+
+function renderCard(j) {
+  const needsAgenda = AGENDA_STATUSES.has(j.status);
+  const agendaBadge = needsAgenda && j.agendaSaved
+    ? `<span class="badge badge-agenda">📅 In agenda</span>` : '';
+  const noteSaved = j.notes ? `<span class="badge badge-soft">Note</span>` : '';
+  const billing = j.status === 'Lavoro terminato da fatturare'
+    ? `<span class="badge badge-soft">Da fatturare</span>` : '';
+
+  return `
+    <article class="card" data-id="${j.id}" tabindex="0">
+      <div class="card-top">
+        <div>
+          <h3>${j.client}</h3>
+          <p>${j.title}</p>
+        </div>
+        ${billing}
+      </div>
+      ${j.next ? `<p><strong>Prossima:</strong> ${j.next}</p>` : ''}
+      ${j.date ? `<p><strong>Data:</strong> ${j.date}</p>` : ''}
+      <div class="meta">
+        <span class="badge priority-${j.priority === 'Alta' ? 'high' : j.priority === 'Media' ? 'medium' : 'low'}">${j.priority}</span>
+        ${noteSaved}
+        ${agendaBadge}
+      </div>
+    </article>`;
+}
+
+// ─── PANEL ───────────────────────────────────────────────────────────────────
+function openPanel(title, content) {
+  document.getElementById('panelTitle').textContent = title;
+  document.getElementById('panelContent').innerHTML = content;
+  document.getElementById('panelBackdrop').classList.add('open');
+}
+
+function closePanel() {
+  document.getElementById('panelBackdrop').classList.remove('open');
+}
+
+// ─── AGENDA FIELD LOGIC ──────────────────────────────────────────────────────
+function setupAgendaField(initialStatus) {
+  const statusSel = document.getElementById('fStatus');
+  const agendaField = document.getElementById('agendaField');
+  const agendaCheckbox = document.getElementById('agendaCheckbox');
+  const agendaError = document.getElementById('agendaError');
+
+  function update(status) {
+    const needsAgenda = AGENDA_STATUSES.has(status);
+    agendaField.classList.toggle('visible', needsAgenda);
+    if (!needsAgenda) {
+      agendaField.classList.remove('error');
+      agendaError.classList.remove('visible');
+    }
+  }
+
+  update(initialStatus);
+  statusSel.addEventListener('change', () => update(statusSel.value));
+
+  // Remove error state when checkbox is ticked
+  agendaCheckbox.addEventListener('change', () => {
+    if (agendaCheckbox.checked) {
+      agendaField.classList.remove('error');
+      agendaError.classList.remove('visible');
+    }
+  });
+}
+
+// ─── NEW JOB ─────────────────────────────────────────────────────────────────
+function openNewJob() {
+  const today = new Date().toISOString().split('T')[0];
+  openPanel('Nuovo lavoro', buildForm(null, today));
+  setupAgendaField(STATUSES[0]);
+  document.getElementById('saveJob').addEventListener('click', () => saveJob(null));
+}
+
+// ─── EDIT JOB ────────────────────────────────────────────────────────────────
+function openJob(id) {
+  const job = jobs.find(j => j.id === id);
+  if (!job) return;
+  openPanel(job.client, buildForm(job));
+  setupAgendaField(job.status);
+  document.getElementById('saveJob').addEventListener('click', () => saveJob(id));
+  document.getElementById('archiveJob')?.addEventListener('click', () => archiveJob(id));
+  document.getElementById('deleteJob')?.addEventListener('click', () => deleteJob(id));
+}
+
+function buildForm(job, defaultDate) {
+  const today = defaultDate || new Date().toISOString().split('T')[0];
+  const isEdit = !!job;
+  const statusOptions = STATUSES.filter(s => s !== 'Archiviato').map(s =>
+    `<option value="${s}" ${job?.status === s ? 'selected' : ''}>${s}</option>`).join('');
+  const priorityOptions = PRIORITIES.map(p =>
+    `<option value="${p}" ${job?.priority === p ? 'selected' : ''}>${p}</option>`).join('');
+  const currentStatus = job?.status || STATUSES[0];
+  const needsAgenda = AGENDA_STATUSES.has(currentStatus);
+  const agendaChecked = job?.agendaSaved ? 'checked' : '';
+
+  return `
+    <div class="form-grid">
+      <div class="field">
+        <label for="fClient">Cliente *</label>
+        <input id="fClient" type="text" placeholder="Nome cliente o struttura" value="${job?.client || ''}">
+      </div>
+      <div class="field">
+        <label for="fTitle">Lavoro *</label>
+        <input id="fTitle" type="text" placeholder="Es. Installazione sollevatore" value="${job?.title || ''}">
+      </div>
+      <div class="field">
+        <label for="fStatus">Stato *</label>
+        <select id="fStatus">${statusOptions}</select>
+      </div>
+
+      <!-- AGENDA CHECKBOX — visibile solo per stati appuntamento -->
+      <div class="agenda-field ${needsAgenda ? 'visible' : ''}" id="agendaField">
+        <input type="checkbox" id="agendaCheckbox" ${agendaChecked}>
+        <label for="agendaCheckbox">
+          Appuntamento salvato in agenda
+          <span>Obbligatorio per questo stato — conferma di aver aggiunto l'appuntamento alla tua agenda.</span>
+        </label>
+      </div>
+      <p class="agenda-error-msg" id="agendaError">⚠ Devi confermare che l'appuntamento è stato salvato in agenda prima di procedere.</p>
+
+      <div class="field">
+        <label for="fPriority">Priorità</label>
+        <select id="fPriority">${priorityOptions}</select>
+      </div>
+      <div class="field">
+        <label for="fNext">Prossima azione</label>
+        <input id="fNext" type="text" placeholder="Es. Richiamare lunedì" value="${job?.next || ''}">
+      </div>
+      <div class="field">
+        <label for="fDate">Data prevista</label>
+        <div class="date-row">
+          <input id="fDate" type="date" value="${job?.date || today}">
+          <button class="date-btn" onclick="setDate('today')">Oggi</button>
+          <button class="date-btn" onclick="setDate('tomorrow')">Domani</button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="fNotes">Note</label>
+        <textarea id="fNotes" placeholder="Informazioni aggiuntive…">${job?.notes || ''}</textarea>
+      </div>
+    </div>
+    <div class="panel-actions">
+      <button class="primary-btn" id="saveJob">💾 Salva</button>
+      ${isEdit ? `
+        <button class="secondary-btn" id="archiveJob">📦 Archivia</button>
+        ` : '<div></div>'}
+    </div>
+    ${isEdit ? `<div style="margin-top:var(--space-3);display:grid;">
+      <button class="ghost-btn" id="deleteJob" style="color:var(--color-danger);border-color:var(--color-danger)">🗑 Elimina lavoro</button>
+    </div>` : ''}`;
+}
+
+function setDate(when) {
+  const d = new Date();
+  if (when === 'tomorrow') d.setDate(d.getDate() + 1);
+  document.getElementById('fDate').value = d.toISOString().split('T')[0];
+}
+
+function saveJob(id) {
+  const client = document.getElementById('fClient').value.trim();
+  const title  = document.getElementById('fTitle').value.trim();
+  const status = document.getElementById('fStatus').value;
+  const agendaField = document.getElementById('agendaField');
+  const agendaCheckbox = document.getElementById('agendaCheckbox');
+  const agendaError = document.getElementById('agendaError');
+
+  if (!client || !title) {
+    alert('Inserisci almeno il nome del cliente e il tipo di lavoro.');
+    return;
+  }
+
+  // Validate agenda checkbox if status requires it
+  if (AGENDA_STATUSES.has(status) && !agendaCheckbox.checked) {
+    agendaField.classList.add('error');
+    agendaError.classList.add('visible');
+    agendaField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+
+  const data = {
+    client,
+    title,
+    status,
+    priority: document.getElementById('fPriority').value,
+    next: document.getElementById('fNext').value.trim(),
+    date: document.getElementById('fDate').value,
+    notes: document.getElementById('fNotes').value.trim(),
+    agendaSaved: AGENDA_STATUSES.has(status) ? agendaCheckbox.checked : false
+  };
+
+  if (id) {
+    const idx = jobs.findIndex(j => j.id === id);
+    jobs[idx] = { ...jobs[idx], ...data };
+    save(); syncJob(jobs[jobs.findIndex(j => j.id === id)]);
+  } else {
+    const newJob = { id: nextId++, ...data };
+    jobs.push(newJob);
+    save(); syncJob(newJob);
+  }
+  closePanel();
+  renderBoardWithCollapse();
+}
+
+function archiveJob(id) {
+  if (!confirm('Archiviare questo lavoro?')) return;
+  const job = jobs.find(j => j.id === id);
+  job.status = 'Archiviato';
+  save(); syncJob(job); closePanel(); renderBoardWithCollapse();
+}
+
+function deleteJob(id) {
+  if (!confirm('Eliminare definitivamente questo lavoro?')) return;
+  syncDelete(id);
+  jobs = jobs.filter(j => j.id !== id);
+  save(); closePanel(); renderBoardWithCollapse();
+}
+
+// ─── VIEWS ───────────────────────────────────────────────────────────────────
+function renderBillingView() {
+  const toInvoice = jobs.filter(j => j.status === 'Lavoro terminato da fatturare');
+  document.getElementById('board').innerHTML = `
+    <div style="grid-column:1/-1;padding:var(--space-4)">
+      <h2 style="margin:0 0 var(--space-4)">Da fatturare (${toInvoice.length})</h2>
+      <div style="display:grid;gap:var(--space-3)">
+        ${toInvoice.length === 0 ? '<p class="muted">Nessun lavoro da fatturare.</p>'
+          : toInvoice.map(j => `
+            <div class="section-card" style="cursor:pointer" onclick="openJob(${j.id})">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <div><strong>${j.client}</strong> — ${j.title}</div>
+                <span class="badge priority-${j.priority==='Alta'?'high':j.priority==='Media'?'medium':'low'}">${j.priority}</span>
+              </div>
+              <p class="muted" style="margin:0;font-size:var(--text-sm)">${j.next || '—'} · ${j.date || '—'}</p>
+            </div>`).join('')}
+      </div>
+    </div>`;
+}
+
+function renderArchiveView() {
+  const arch = jobs.filter(j => j.status === 'Archiviato');
+  document.getElementById('board').innerHTML = `
+    <div style="grid-column:1/-1;padding:var(--space-4)">
+      <h2 style="margin:0 0 var(--space-4)">Archivio (${arch.length})</h2>
+      <div style="display:grid;gap:var(--space-3)">
+        ${arch.length === 0 ? '<p class="muted">Nessun lavoro archiviato.</p>'
+          : arch.map(j => `
+            <div class="section-card" style="cursor:pointer;opacity:.75" onclick="openJob(${j.id})">
+              <div><strong>${j.client}</strong> — ${j.title}</div>
+              <p class="muted" style="margin:0;font-size:var(--text-sm)">${j.date || '—'}</p>
+            </div>`).join('')}
+      </div>
+    </div>`;
+}
+
+// ─── EVENTS ──────────────────────────────────────────────────────────────────
+document.getElementById('newJobBtn').addEventListener('click', openNewJob);
+document.getElementById('navNew').addEventListener('click', openNewJob);
+document.getElementById('closePanel').addEventListener('click', closePanel);
+document.getElementById('panelBackdrop').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closePanel();
+});
+
+document.getElementById('searchInput').addEventListener('input', e => {
+  searchQuery = e.target.value;
+  renderBoardWithCollapse();
+});
+
+document.getElementById('filters').addEventListener('click', e => {
+  const btn = e.target.closest('.chip');
+  if (!btn) return;
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  activeFilter = btn.dataset.filter;
+  renderBoardWithCollapse();
+});
+
+document.querySelectorAll('.nav-btn[data-view]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const view = btn.dataset.view;
+    if (view === 'board') { renderBoard(); setupCollapsibleColumns(); }
+    else if (view === 'billing') renderBillingView();
+    else if (view === 'archive') renderArchiveView();
+  });
+});
+
+// ─── COLLAPSIBLE COLUMNS (mobile ≤480px) ─────────────────────────────────────
+function setupCollapsibleColumns() {
+  if (window.innerWidth > 480) return;
+  document.querySelectorAll('.column').forEach(col => {
+    const head = col.querySelector('.column-head');
+    const count = col.querySelector('.count');
+    // Collapse empty columns by default on mobile
+    if (count && count.textContent.trim() === '0') col.classList.add('collapsed');
+    head.addEventListener('click', () => col.classList.toggle('collapsed'));
+  });
+}
+
+// Re-run after every board render
+const _origRender = renderBoard;
+function renderBoardWithCollapse() {
+  _origRender();
+  setupCollapsibleColumns();
+}
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+renderBoardWithCollapse();
+if (syncEnabled) {
+  showSyncBadge('syncing');
+  syncFromSheet().then(() => renderBoardWithCollapse());
+} else {
+  document.getElementById('syncBadge').textContent = '⚠ Configura URL script';
+  document.getElementById('syncBadge').style.color = 'var(--color-text-muted)';
+}
+</script>
+</body>
+</html>
